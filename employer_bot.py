@@ -42,7 +42,7 @@ commands = {  # command description used in the "help" command
     'getImage': 'A test using multi-stage messages, custom keyboard, and media sending'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"
+TOKEN = "PLEASE INSERT TOKEN"                                       #TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
@@ -199,9 +199,9 @@ def stat_calc(cid, mid, start_date, user_id):
         vacation_total_time = str(vacation_total_time / 86400).split(".")[0]
         result_sick_time = f"Всего на больничном, за этот промежуток, дней: {sick_leave_total_time}\n"
 
-        if user_id is None:
+        if user_id is None or vacation_days is None:
             result_vacation_time = f"Всего в отпуске, за этот промежуток, дней: {vacation_total_time}\n\n"
-        else:
+        elif vacation_days is not None:
             result_vacation_time = f"Всего в отпуске, за этот промежуток, дней: {vacation_total_time} из {vacation_days}\n"
 
         neg_start_delay_hours = str(neg_work_start_delay / 3600).split(".")[0]
