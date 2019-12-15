@@ -42,7 +42,7 @@ commands = {  # command description used in the "help" command
     'getImage': 'A test using multi-stage messages, custom keyboard, and media sending'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"                                       #TODO INSERT TOKEN
+TOKEN = "PLEASE INSERT TOKEN"                              #TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
@@ -175,12 +175,6 @@ def stat_calc(cid, mid, start_date, user_id):
             result_office_time = f"Всего работы в офисе за этот промежуток времени:\n{office_total_hours} часов, " \
                                  f"{office_total_minutes} минут {office_total_seconds} секунд\n\n"
 
-        free_total_hours = str(free_time_total / 3600).split(".")[0]
-        free_total_minutes = str((free_time_total % 3600) / 60).split(".")[0]
-        free_total_seconds = str((free_time_total % 3600) % 60).split(".")[0]
-        result_free_time = f"Всего свободного времени потрачено за этот промежуток времени:\n" \
-                           f"{free_total_hours} часов, {free_total_minutes} минут {free_total_seconds} секунд\n\n"
-
         home_total_hours = str(home_total_time / 3600).split(".")[0]
         home_total_minutes = str((home_total_time % 3600) / 60).split(".")[0]
         home_total_seconds = str((home_total_time % 3600) % 60).split(".")[0]
@@ -199,10 +193,23 @@ def stat_calc(cid, mid, start_date, user_id):
         vacation_total_time = str(vacation_total_time / 86400).split(".")[0]
         result_sick_time = f"Всего на больничном, за этот промежуток, дней: {sick_leave_total_time}\n"
 
+        free_total_hours = str(free_time_total / 3600).split(".")[0]
+        free_total_minutes = str((free_time_total % 3600) / 60).split(".")[0]
+        free_total_seconds = str((free_time_total % 3600) % 60).split(".")[0]
+        # result_free_time = f"Всего свободного времени потрачено за этот промежуток времени:\n" \
+        #                    f"{free_total_hours} часов, {free_total_minutes} минут {free_total_seconds} секунд\n\n"
+
         if user_id is None or vacation_days is None:
             result_vacation_time = f"Всего в отпуске, за этот промежуток, дней: {vacation_total_time}\n\n"
         elif vacation_days is not None:
             result_vacation_time = f"Всего в отпуске, за этот промежуток, дней: {vacation_total_time} из {vacation_days}\n"
+
+        if user_id is None or free_time_hours is None:
+            result_free_time = f"Всего свободного времени потрачено за этот промежуток времени:\n" \
+                               f"{free_total_hours} часов, {free_total_minutes} минут {free_total_seconds} секунд\n\n"
+        elif free_time_hours is not None:
+            result_free_time = f"Всего свободного времени потрачено за этот промежуток времени:\n" \
+                               f"{free_total_hours} часов, {free_total_minutes} минут {free_total_seconds} секунд\n\n"
 
         neg_start_delay_hours = str(neg_work_start_delay / 3600).split(".")[0]
         result_start_delay = f"Всего опозданий за этот промежуток времени, часов: {neg_start_delay_hours}\n"
@@ -432,35 +439,7 @@ def show_workers(call):
             print("user_id" + str(userId))
             thirty_days_back = datetime.datetime.now() - datetime.timedelta(days=30)
             stat_calc(call.message.chat.id, call.message.message_id, thirty_days_back, userId)
-            # dateNow = datetime.datetime.now()
-            # status_id = 1
-            # sql = """SELECT time_difference FROM workers WHERE user_id = %s AND status_id = %s AND company_id = %s
-            #                 AND DATE(arrival_time) between %s and %s """
-            # mycursor.execute(sql, (userId, status_id, my_company_id, thirty_days_back, dateNow,))
-            # result = mycursor.fetchall()
-            # total_seconds_time = 0
-            # for result[0] in result:
-            #     if isinstance(result[0][0], int):
-            #         total_seconds_time += result[0][0]
-            #         # print("ssssssss: " + str(result))
-            # total_hours = str(total_seconds_time / 3600).split(".")[0]
-            # total_minutes = str((total_seconds_time % 3600) / 60).split(".")[0]
-            # total_seconds = str((total_seconds_time % 3600) % 60).split(".")[0]
-            # total_days = 0
-            # if (total_seconds_time / 3600) > 24:
-            #     total_days = str((total_seconds_time / 3600) / 24).split(".")[0]
-            #     total_hours = str((total_seconds_time / 3600) % 24).split(".")[0]
-            #     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-            #                           text=str(
-            #                               current_name) + f"\n\nВремя работы за 30 дней: \n{total_days} дней\n{total_hours} часов\n"
-            #                                               f"{total_minutes} минут\n{total_seconds} секунд",
-            #                           reply_markup=names_keyboard)
-            # else:
-            #     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-            #                           text=str(
-            #                               current_name) + f"\n\nВремя работы за 30 дней: \n{total_hours} часов\n{total_minutes} минут\n{total_seconds} секунд",
-            #                           reply_markup=names_keyboard)
-            # mySQLConnection.commit()
+
         except mysql.connector.Error as error:
             print("Failed to get record from MySQL table: {}".format(error))
         finally:

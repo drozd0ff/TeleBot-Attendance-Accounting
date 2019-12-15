@@ -41,7 +41,7 @@ commands = {  # command description used in the "help" command
     'sign_up': 'Sign up yourself'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"                                                               #TODO INSERT TOKEN
+TOKEN = "PLEASE INSERT TOKEN"                                            #TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
@@ -466,6 +466,7 @@ def msg_departure_status_select(m):
                                                                         ORDER BY id DESC LIMIT 1"""
                 mycursor.execute(sql, (utc_plustwo_time, cid,))
                 mySQLConnection.commit()
+                get_office_time(m)
                 bot.send_message(cid, "Окей, передохнул - давай снова за работу!\n/arrive", reply_markup=hideBoard)
                 userStep[cid] = 0
             except mysql.connector.Error as error:
