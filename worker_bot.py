@@ -41,7 +41,7 @@ commands = {  # command description used in the "help" command
     'sign_up': 'Sign up yourself'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"                                            #TODO INSERT TOKEN
+TOKEN = "PLEASE INSERT TOKEN"                                           #TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 

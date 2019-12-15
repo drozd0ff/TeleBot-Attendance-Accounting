@@ -42,7 +42,7 @@ commands = {  # command description used in the "help" command
     'getImage': 'A test using multi-stage messages, custom keyboard, and media sending'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"                              #TODO INSERT TOKEN
+TOKEN = "PLEASE INSERT TOKEN"                             #TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
@@ -95,11 +95,11 @@ def stat_calc(cid, mid, start_date, user_id):
         mycursor.execute(get_company_id_sql, (cid,))
         current_company_id = mycursor.fetchall()[0][0]
         get_vacation_days = """SELECT vacation_time_days FROM users WHERE company_id = %s AND name IS NULL 
-                                AND last_name IS NULL ORDER BY ID DESC"""
+                                AND last_name IS NULL ORDER BY id DESC"""
         mycursor.execute(get_vacation_days, (current_company_id,))
         vacation_days = mycursor.fetchall()[0][0]
         get_free_time_hours = """SELECT free_time_hours FROM users WHERE company_id = %s AND name IS NULL 
-                                AND last_name IS NULL ORDER BY ID DESC"""
+                                AND last_name IS NULL ORDER BY id DESC"""
         mycursor.execute(get_free_time_hours, (current_company_id,))
         free_time_hours = mycursor.fetchall()[0][0]
         current_date = datetime.datetime.now().date()
@@ -107,10 +107,10 @@ def stat_calc(cid, mid, start_date, user_id):
             start_date = '2019-01-01'
         val = [current_company_id, start_date, current_date]
         if user_id is None:
-            get_test_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id, id 
+            get_test_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id, user_id 
                                 FROM workers WHERE company_id = %s AND DATE(arrival_time) between %s and %s ORDER BY id"""
         else:
-            get_test_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id, id 
+            get_test_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id 
                                 FROM workers WHERE company_id = %s AND user_id = %s 
                                 AND DATE(arrival_time) between %s and %s ORDER BY id"""
             val.insert(1, user_id)
@@ -161,6 +161,9 @@ def stat_calc(cid, mid, start_date, user_id):
             if i[3] == 5 and isinstance(i[0], int):
                 vacation_total_time += i[0]
 
+
+
+
         office_total_hours = str(office_total_time / 3600).split(".")[0]
         office_total_minutes = str((office_total_time % 3600) / 60).split(".")[0]
         office_total_seconds = str((office_total_time % 3600) % 60).split(".")[0]
@@ -189,8 +192,16 @@ def stat_calc(cid, mid, start_date, user_id):
             result_home_time = f"Всего работы на дому за этот промежуток времени:\n{home_total_hours} часов, " \
                                f"{home_total_minutes} минут {home_total_seconds} секунд\n\n"
 
-        sick_leave_total_time = str(sick_leave_total_time / 86400).split(".")[0]
-        vacation_total_time = str(vacation_total_time / 86400).split(".")[0]
+        if sick_leave_total_time >= 86400:
+            sick_leave_total_time = str(sick_leave_total_time / 86400).split(".")[0]
+        elif sick_leave_total_time < 86400:
+            sick_leave_total_time = 0
+
+        if vacation_total_time >= 86400:
+            vacation_total_time = str(vacation_total_time / 86400).split(".")[0]
+        elif vacation_total_time < 86400:
+            vacation_total_time = 0
+
         result_sick_time = f"Всего на больничном, за этот промежуток, дней: {sick_leave_total_time}\n"
 
         free_total_hours = str(free_time_total / 3600).split(".")[0]
