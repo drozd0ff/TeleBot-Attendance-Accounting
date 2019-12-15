@@ -41,7 +41,7 @@ commands = {  # command description used in the "help" command
     'sign_up': 'Sign up yourself'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"                                           #TODO INSERT TOKEN
+TOKEN = "INSERT TOKEN PLEASE"                                           #TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
@@ -80,6 +80,7 @@ def get_current_time():
     global utc_plustwo_time
     # utc_plustwo_time = datetime.datetime.now() + datetime.timedelta(hours=2)
     utc_plustwo_time = datetime.datetime.now()
+    # utc_plustwo_time = datetime.datetime.now() - datetime.timedelta(hours=5)
     return utc_plustwo_time
 
 def get_company_id(m):

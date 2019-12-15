@@ -42,7 +42,7 @@ commands = {  # command description used in the "help" command
     'getImage': 'A test using multi-stage messages, custom keyboard, and media sending'
 }
 
-TOKEN = "PLEASE INSERT TOKEN"                             #TODO INSERT TOKEN
+TOKEN = "INSERT TOKEN PLEASE"  # TODO INSERT TOKEN
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
@@ -107,14 +107,14 @@ def stat_calc(cid, mid, start_date, user_id):
             start_date = '2019-01-01'
         val = [current_company_id, start_date, current_date]
         if user_id is None:
-            get_test_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id, user_id 
+            get_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id 
                                 FROM workers WHERE company_id = %s AND DATE(arrival_time) between %s and %s ORDER BY id"""
         else:
-            get_test_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id 
+            get_stats = """SELECT time_difference, work_start_difference, work_finish_difference, status_id 
                                 FROM workers WHERE company_id = %s AND user_id = %s 
                                 AND DATE(arrival_time) between %s and %s ORDER BY id"""
             val.insert(1, user_id)
-        mycursor.execute(get_test_stats, val)
+        mycursor.execute(get_stats, val)
         result = mycursor.fetchall()
 
         office_total_time = 0
@@ -160,9 +160,6 @@ def stat_calc(cid, mid, start_date, user_id):
 
             if i[3] == 5 and isinstance(i[0], int):
                 vacation_total_time += i[0]
-
-
-
 
         office_total_hours = str(office_total_time / 3600).split(".")[0]
         office_total_minutes = str((office_total_time % 3600) / 60).split(".")[0]
@@ -241,6 +238,100 @@ def stat_calc(cid, mid, start_date, user_id):
             print("MySQL connection is closed")
 
 
+def rating(cid, mid, start_date, icon):
+    try:
+        mySQLConnection = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            passwd="",
+            database="mydatabase"
+        )
+
+        mycursor = mySQLConnection.cursor(buffered=True)
+        get_company_id_sql = """SELECT company_id FROM users WHERE user_id = %s ORDER BY id DESC LIMIT 1"""
+        mycursor.execute(get_company_id_sql, (cid,))
+        current_company_id = mycursor.fetchall()[0][0]
+        current_date = datetime.datetime.now().date()
+        if start_date is None:
+            start_date = '2019-01-01'
+        val = [current_company_id, start_date, current_date]
+        get_stats = """SELECT time_difference, status_id, work_start_difference, work_finish_difference, user_id 
+                       FROM workers WHERE company_id = %s AND DATE(arrival_time) between %s and %s ORDER BY id"""
+        mycursor.execute(get_stats, val)
+        result = mycursor.fetchall()
+        rating_dict = dict()
+        for i in result:
+
+            if icon == "opozdyn":
+                if isinstance(i[2], datetime.timedelta) and i[2].days >= 0:
+                    if i[4] in rating_dict:
+                        record = rating_dict.get(i[4])
+                        record += i[2].seconds
+                        rating_dict[i[4]] = record
+                    elif i[4] not in rating_dict and i[2].days >= 0:
+                        rating_dict[i[4]] = i[2].seconds
+                context_string = ("Главный опоздун", "всего опоздал на:\n", "Опоздун")
+
+            if icon == "rvach":
+                if isinstance(i[3], datetime.timedelta) and i[3].days < 0:
+                    abs_res = 86400 - i[3].seconds
+                    print(i[3].seconds)
+                    if i[4] in rating_dict:
+                        record = rating_dict.get(i[4])
+                        record += abs_res
+                        rating_dict[i[4]] = record
+                    elif i[4] not in rating_dict and i[3].days < 0:
+                        rating_dict[i[4]] = abs_res
+                context_string = ("Главный рвач", "всего ушел раньше на:\n", "Рвач")
+
+            if icon == "tropic":
+                if i[4] in rating_dict and i[1] == 5:
+                    record = rating_dict.get(i[4])
+                    record += i[0]
+                    rating_dict[i[4]] = record
+                elif i[4] not in rating_dict and i[1] == 5:
+                    rating_dict[i[4]] = i[0]
+                context_string = ("Главный тропик", "всего отдохнул:\n", "Тропик")
+
+            if icon == "ipohun":
+                if i[4] in rating_dict and i[1] == 4:
+                    record = rating_dict.get(i[4])
+                    record += i[0]
+                    rating_dict[i[4]] = record
+                elif i[4] not in rating_dict and i[1] == 4:
+                    rating_dict[i[4]] = i[0]
+                context_string = ("Главный ипохун", "всего пролежал в больнице:\n", "Ипохун")
+
+        try:
+            rating_list = list(rating_dict.items())
+            rating_list.sort(key=lambda i: i[1], reverse=True)
+
+            sql = """SELECT name, last_name FROM users WHERE user_id = %s ORDER BY id DESC LIMIT 1"""
+            mycursor.execute(sql, (rating_list[0][0],))
+            name = mycursor.fetchone()
+            total_hours = str(rating_list[0][1] / 3600).split(".")[0]
+            total_minutes = str((rating_list[0][1] % 3600) / 60).split(".")[0]
+            total_seconds = str((rating_list[0][1] % 3600) % 60).split(".")[0]
+            print(str(name[0]) + " " + str(name[1]))
+            bot.edit_message_text(chat_id=cid, message_id=mid,
+                                  text=f"{context_string[0]} -> {name[0]} {name[1]}, {context_string[1]}"
+                                       f"{total_hours} часов, {total_minutes} минут, {total_seconds} секунд",
+                                  reply_markup=main_menu_btn())
+        except IndexError:
+            bot.send_message(cid, f"Кажется, в этой компании пока еще нет никого с клеймом {context_string[2]} :)",
+                             reply_markup=main_menu_btn())
+        except Exception as e:
+            print("Failed to get record from MySQL table: {}".format(e))
+
+    except mysql.connector.Error as error:
+        print("Failed to get record from MySQL table: {}".format(error))
+    finally:
+        if (mySQLConnection.is_connected()):
+            mycursor.close()
+            mySQLConnection.close()
+            print("MySQL connection is closed")
+
+
 def get_company_id(id):
     try:
         mySQLConnection = mysql.connector.connect(
@@ -288,7 +379,6 @@ def main_menu():
     main_menu_keyboard.add(types.InlineKeyboardButton(text="Налаштування", callback_data="company_settings"),
                            types.InlineKeyboardButton(text="Статистика", callback_data="company_stats"),
                            types.InlineKeyboardButton(text="Рейтинг", callback_data="company_rating"))
-    # main_menu_keyboard.add(types.InlineKeyboardButton(text="Главное меню", callback_data="main_menu"))
     return main_menu_keyboard
 
 
@@ -298,6 +388,28 @@ def statistics():
                        types.InlineKeyboardButton(text="Каждому работнику", callback_data="worker_stats"))
     stats_keyboard.add(types.InlineKeyboardButton(text="Главное меню", callback_data="main_menu"))
     return stats_keyboard
+
+
+def rating_icons_all_time():
+    rating_icons_all_time_keyboard = types.InlineKeyboardMarkup()
+    rating_icons_all_time_keyboard.add(types.InlineKeyboardButton(text="Опоздун", callback_data="opozdyn_all_time"),
+                                       types.InlineKeyboardButton(text="Рвач", callback_data="rvach_all_time"))
+    rating_icons_all_time_keyboard.add(types.InlineKeyboardButton(text="Тропик", callback_data="tropic_all_time"),
+                                       types.InlineKeyboardButton(text="Ипохун", callback_data="ipohun_all_time"))
+    rating_icons_all_time_keyboard.add(types.InlineKeyboardButton(text="Главное меню", callback_data="main_menu"))
+    return rating_icons_all_time_keyboard
+
+
+def rating_icons_thirty_days():
+    rating_icons_thirty_days_keyboard = types.InlineKeyboardMarkup()
+    rating_icons_thirty_days_keyboard.add(
+        types.InlineKeyboardButton(text="Опоздун", callback_data="opozdyn_thirty_days"),
+        types.InlineKeyboardButton(text="Рвач", callback_data="rvach_thirty_days"))
+    rating_icons_thirty_days_keyboard.add(
+        types.InlineKeyboardButton(text="Тропик", callback_data="tropic_thirty_days"),
+        types.InlineKeyboardButton(text="Ипохун", callback_data="ipohun_thirty_days"))
+    rating_icons_thirty_days_keyboard.add(types.InlineKeyboardButton(text="Главное меню", callback_data="main_menu"))
+    return rating_icons_thirty_days_keyboard
 
 
 def main_menu_btn():
@@ -366,8 +478,6 @@ def show_workers(call):
                               reply_markup=names_keyboard)
 
     elif call.data == 'whole_company_stats':
-        main_menu_button = types.InlineKeyboardMarkup()
-        main_menu_button.add(types.InlineKeyboardButton(text="Главное меню", callback_data="main_menu"))
         company_stats_select_keyboard = types.InlineKeyboardMarkup()
         company_stats_select_keyboard.add(types.InlineKeyboardButton(text="За все время:",
                                                                      callback_data="whole_company_all_time"),
@@ -381,6 +491,46 @@ def show_workers(call):
     elif call.data == "whole_company_thirty_days":
         thirty_days_back = datetime.datetime.now() - datetime.timedelta(days=30)
         stat_calc(call.message.chat.id, call.message.message_id, thirty_days_back, None)
+
+    elif call.data == "company_rating":
+        company_rating_select_keyboard = types.InlineKeyboardMarkup()
+        company_rating_select_keyboard.add(types.InlineKeyboardButton(text="За все время:",
+                                                                      callback_data="rating_all_time"),
+                                           types.InlineKeyboardButton(text="За последние 30 дней:",
+                                                                      callback_data="rating_thirty_days"))
+        company_rating_select_keyboard.add(types.InlineKeyboardButton(text="Главное меню", callback_data="main_menu"))
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Рейтинг за:",
+                              reply_markup=company_rating_select_keyboard)
+
+    elif call.data == "rating_all_time":
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Выбрать: ",
+                              reply_markup=rating_icons_all_time())
+    elif call.data == "rating_thirty_days":
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Выбрать: ",
+                              reply_markup=rating_icons_thirty_days())
+
+    elif call.data == "opozdyn_all_time":
+        rating(call.message.chat.id, call.message.message_id, None, "opozdyn")
+    elif call.data == "rvach_all_time":
+        rating(call.message.chat.id, call.message.message_id, None, "rvach")
+    elif call.data == "tropic_all_time":
+        rating(call.message.chat.id, call.message.message_id, None, "tropic")
+    elif call.data == "ipohun_all_time":
+        rating(call.message.chat.id, call.message.message_id, None, "ipohun")
+
+    elif call.data == "opozdyn_thirty_days":
+        thirty_days_back = datetime.datetime.now() - datetime.timedelta(days=30)
+        rating(call.message.chat.id, call.message.message_id, thirty_days_back, "opozdyn")
+    elif call.data == "rvach_thirty_days":
+        thirty_days_back = datetime.datetime.now() - datetime.timedelta(days=30)
+        rating(call.message.chat.id, call.message.message_id, thirty_days_back, "rvach")
+    elif call.data == "tropic_thirty_days":
+        thirty_days_back = datetime.datetime.now() - datetime.timedelta(days=30)
+        rating(call.message.chat.id, call.message.message_id, thirty_days_back, "tropic")
+    elif call.data == "ipohun_thirty_days":
+        thirty_days_back = datetime.datetime.now() - datetime.timedelta(days=30)
+        rating(call.message.chat.id, call.message.message_id, thirty_days_back, "ipohun")
+
 
     elif call.data == "current_status":
         try:
